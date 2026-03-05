@@ -1,4 +1,5 @@
 from setuptools import setup
+from glob import glob
 
 package_name = 'auto_nav'
 
@@ -10,6 +11,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/config', glob('config/*.yaml')),
+        ('share/' + package_name + '/launch', glob('launch/*.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,6 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'frontier_detector = auto_nav.frontier_detector:main',
+            'exploration_manager = auto_nav.exploration_manager:main',
             'r2mover = auto_nav.r2mover:main',
             'r2moverotate = auto_nav.r2moverotate:main',
             'r2scanner = auto_nav.r2scanner:main',
@@ -29,3 +34,4 @@ setup(
         ],
     },
 )
+
