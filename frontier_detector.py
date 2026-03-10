@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSReliabilityPolicy, QoSProfile
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
 import tf2_ros
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
@@ -39,9 +39,6 @@ class FrontierDetector(Node):
         self.map_sub = self.create_subscription(
             OccupancyGrid, 'map', self.map_callback, map_qos)
 
-        self.blacklist_sub = self.create_subscription(
-            Point, '/blacklist_frontier', self._blacklist_cb, 10)
-
         # ── Publishers ────────────────────────────────
         self.frontier_pub = self.create_publisher(
             MarkerArray, '/frontiers', 10)
@@ -67,13 +64,6 @@ class FrontierDetector(Node):
             return
         self.last_compute = now
         self.compute_frontiers(msg)
-
-    # ──────────────────────────────────────────────────────
-    # Blacklist callback — receives failed frontiers
-    # from exploration_manager via /blacklist_frontier topic
-    # ──────────────────────────────────────────────────────
-    def _blacklist_cb(self, msg):
-        self.add_to_blacklist(msg.x, msg.y)
 
     # ──────────────────────────────────────────────────────
     # Get robot position in map grid coords

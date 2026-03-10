@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 
-from geometry_msgs.msg import PoseStamped, Twist, Point
+from geometry_msgs.msg import PoseStamped, Twist
 from std_msgs.msg import Bool
 from nav2_msgs.action import NavigateToPose
 
@@ -119,12 +119,6 @@ class NavigateToFrontier(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.RUNNING
 
         if self._result == 'success':
-            # Blacklist reached frontier so we don't revisit it
-            frontier = self.bb.get(BB_CURRENT_FRONTIER)
-            if frontier:
-                _node_ref.blacklist_frontier(
-                    frontier.pose.position.x,
-                    frontier.pose.position.y)
             return py_trees.common.Status.SUCCESS
         else:
             # Blacklist failed frontier
@@ -253,9 +247,6 @@ class ExplorationManager(Node):
         self.cmd_vel_pub = self.create_publisher(
             Twist, '/cmd_vel', 10)
 
-        self.blacklist_pub = self.create_publisher(
-            Point, '/blacklist_frontier', 10)
-
         # ── Subscribers ─────────────────────────────
         self.create_subscription(
             PoseStamped, '/best_frontier',
@@ -278,11 +269,11 @@ class ExplorationManager(Node):
         self.tree = py_trees.trees.BehaviourTree(build_tree())
         self.tree.setup(timeout=15)
 
-        # ── Tick timer 500ms ─────────────────────────
-        self.create_timer(0.5, self._tick)
+        # ── Tick timer 100ms ─────────────────────────
+        self.create_timer(0.1, self._tick)
 
         self.get_logger().info(
-            'Exploration manager ready — ticking BT at 2Hz')
+            'Exploration manager ready — ticking BT at 10Hz')
 
     def _frontier_cb(self, msg):
         self.latest_frontier = msg
@@ -293,15 +284,10 @@ class ExplorationManager(Node):
             self.get_logger().info('Map closure confirmed')
 
     def blacklist_frontier(self, wx, wy):
+        # TODO: wire to frontier_detector service later
         self.get_logger().warn(
             f'Blacklisting frontier ({wx:.2f}, {wy:.2f})')
-        # Publish to frontier_detector so it filters this frontier out
-        msg = Point()
-        msg.x = wx
-        msg.y = wy
-        self.blacklist_pub.publish(msg)
-        # Clear latest so BT waits for a fresh frontier next tick
-        self.latest_frontier = None
+        self.latest_frontier = None   # force recompute next tick
 
     def _tick(self):
         self.tree.tick()
@@ -328,3 +314,5 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
